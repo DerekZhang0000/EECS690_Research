@@ -39,7 +39,6 @@ class BackpropNet(nn.Module):
         with torch.no_grad():
             for param in self.parameters():
                 param.data -= learning_rate * param.grad
-
         self.zero_grad()
 
         return loss.item()
@@ -47,14 +46,14 @@ class BackpropNet(nn.Module):
     def train(self, train_loader, learning_rate=0.01, epochs=10):
         losses = []
         for epoch in range(epochs):
-            loss = 0
+            cumulative_loss = 0
             for batch in train_loader:
                 images, labels = batch
                 images, labels = images.to("cuda:0"), labels.to("cuda:0")
                 predictions = self.forward(images)
-                loss += self.backward(predictions, labels, learning_rate)
+                cumulative_loss += self.backward(predictions, labels, learning_rate)
 
-            loss /= len(train_loader)
+            loss = cumulative_loss / len(train_loader)
             losses.append(loss)
             print(f"Epoch {epoch} Loss: {loss}")
 
@@ -93,44 +92,56 @@ class FFNet(nn.Module):
     class FFLayer(nn.Linear):
         def __init__(self, inputs, outputs, threshold):
             super(FFNet.FFLayer, self).__init__(inputs, outputs)
-            self.R = nn.ReLU()
+            self.R = nn.ReLU(inplace=False)
             self.threshold = threshold
 
         def forward(self, x):
+            # Flatten input
+            x = x.view(x.shape[0], -1)
+
             x_norm = F.normalize(x, p=2, dim=1)
-            x_new = x / (x_norm + 1e-8)  # Small value is added to prevent division by zero
-            return self.R(torch.matmul(x_new, self.weight.t()) + self.bias)
+            x_transform = torch.matmul(x_norm, self.weight.t()) + self.bias.view(1, -1).t()
+            x_relu = self.R(x_transform)
+            return x_relu
+
+        def train(self, positive_data, negative_data, learning_rate):
+            def goodness(x):
+                return torch.sum(x ** 2)
+
+            layer_loss = 0
+
+            # Positive pass
+            x = self.forward(positive_data)
+            loss = torch.log(1 + torch.exp(goodness(x) - self.threshold))
+            layer_loss += loss.item()
+
+            # backward() does not want to work, so we calculate gradients manually here
+            grads = torch.autograd.grad(loss, self.parameters(), create_graph=True)
+            with torch.no_grad():
+                for param, grad in zip(self.parameters(), grads):
+                    param.grad = -1 * grad * learning_rate
+            self.zero_grad()
+
+            # Negative pass
+            x = self.forward(negative_data)
+            loss = torch.log(1 + torch.exp(self.threshold - goodness(x)))
+            layer_loss += loss.item()
+
+            grads = torch.autograd.grad(loss, self.parameters(), create_graph=True)
+            with torch.no_grad():
+                for param, grad in zip(self.parameters(), grads):
+                    param.grad = -1 * grad * learning_rate
+            self.zero_grad()
+
+            return layer_loss / 2
 
     def __init__(self):
         super(FFNet, self).__init__()
-        self.fc1 = self.FFLayer(28 * 28, 64, threshold=20)  # Thresholds are arbitrary
-        self.fc2 = self.FFLayer(64, 64, threshold=10)
-        self.fc3 = self.FFLayer(64, 10, threshold=10)
+        self.fc1 = self.FFLayer(28 * 28, 64, threshold=2)  # Thresholds are arbitrary
+        self.fc2 = self.FFLayer(64, 64, threshold=2)
+        self.fc3 = self.FFLayer(64, 10, threshold=2)
         self.layers = (self.fc1, self.fc2, self.fc3)
         self.to("cuda:0")
-
-    def forward(self, x, positive_data=True):
-        # Flatten input
-        x = x.view(x.shape[0], -1)
-        x = F.normalize(x, p=2, dim=1)
-
-        def goodness(x):
-            return torch.sum(x ** 2)
-
-        total_loss = 0
-        for layer in self.layers:
-            x = layer.forward(x)
-            if positive_data:
-                loss = torch.log(1 + torch.exp(goodness(x) - layer.threshold))
-            else:
-                loss = torch.log(1 + torch.exp(layer.threshold - goodness(x)))
-
-            self.zero_grad()
-            loss.backward(retain_graph=True) # Calculate gradients for 1 layer
-
-            total_loss += loss.item()
-
-        return total_loss
 
     def encode_label(self, image, label):
         # Encodes the image label into the image
@@ -145,29 +156,22 @@ class FFNet(nn.Module):
     def train(self, train_loader, learning_rate=0.01, epochs=10):
         losses = []
         for epoch in range(epochs):
-            loss = 0
+            cumulative_loss = 0
             for batch in train_loader:
                 images, labels = batch
                 images, labels = images.to("cuda:0"), labels.to("cuda:0")
                 positive_images, positive_labels = images[:len(images) // 2], labels[:len(labels) // 2]
-                torch.stack([self.encode_label(image, label) for image, label in zip(positive_images, positive_labels)])
+                positive_images = torch.stack([self.encode_label(image, label) for image, label in zip(positive_images, positive_labels)])
                 negative_images, negative_labels = images[len(images) // 2:], labels[len(labels) // 2:]
-                torch.stack([self.encode_label(image, (label + randint(1, 9)) % 10) for image, label in zip(negative_images, negative_labels)])
+                negative_images = torch.stack([self.encode_label(image, (label + randint(1, 9)) % 10) for image, label in zip(negative_images, negative_labels)]) # Misencodes the label for negative data
 
-                temp_loss = self.forward(positive_images, positive_data=True)
-                with torch.no_grad():
-                    for param in self.parameters():
-                        param.data -= learning_rate * param.grad
+                for image_pair in zip(positive_images, negative_images):
+                    temp_loss = 0
+                    for layer in self.layers:
+                        temp_loss += layer.train(image_pair[0], image_pair[1], learning_rate=learning_rate)
+                    cumulative_loss += temp_loss / len(self.layers)
 
-                temp_loss += self.forward(negative_images, positive_data=False)
-                with torch.no_grad():
-                    for param in self.parameters():
-                        param.data -= learning_rate * param.grad
-
-                temp_loss /= 2
-                loss += temp_loss
-
-            loss /= len(train_loader)
+            loss = cumulative_loss / len(train_loader)
             losses.append(loss)
             print(f"Epoch {epoch} Loss: {loss}")
 
