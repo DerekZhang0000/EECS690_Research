@@ -92,48 +92,36 @@ class FFNet(nn.Module):
     class FFLayer(nn.Linear):
         def __init__(self, inputs, outputs, threshold):
             super(FFNet.FFLayer, self).__init__(inputs, outputs)
-            self.R = nn.ReLU(inplace=False)
+            self.R = nn.ReLU()
+            self.opt = torch.optim.Adam(self.parameters(), lr=0.01)
             self.threshold = threshold
 
         def forward(self, x):
             # Flatten input
             x = x.view(x.shape[0], -1)
 
-            x_norm = F.normalize(x, p=2, dim=1)
-            x_transform = torch.matmul(x_norm, self.weight.t()) + self.bias.view(1, -1).t()
+            # Normalize and transform input
+            x_direction = x / (x.norm(2, 1) + 1e-4).unsqueeze(1)
+            x_transform = torch.matmul(x_direction, self.weight.T) + self.bias.unsqueeze(0)
+
+            # Forward pass
             x_relu = self.R(x_transform)
             return x_relu
 
-        def train(self, positive_data, negative_data, learning_rate):
+        def train(self, x_positive, x_negative):
             def goodness(x):
-                return torch.sum(x ** 2)
+                return x.pow(2).mean(1)
 
-            layer_loss = 0
+            loss = torch.log(1 + torch.exp(torch.cat([
+                -goodness(self.forward(x_positive)) + self.threshold,
+                goodness(self.forward(x_negative)) - self.threshold
+            ]))).mean()
 
-            # Positive pass
-            x = self.forward(positive_data)
-            loss = torch.log(1 + torch.exp(goodness(x) - self.threshold))
-            layer_loss += loss.item()
+            self.opt.zero_grad()
+            loss.backward()
+            self.opt.step()
 
-            # backward() does not want to work, so we calculate gradients manually here
-            grads = torch.autograd.grad(loss, self.parameters(), create_graph=True)
-            with torch.no_grad():
-                for param, grad in zip(self.parameters(), grads):
-                    param.grad = -1 * grad * learning_rate
-            self.zero_grad()
-
-            # Negative pass
-            x = self.forward(negative_data)
-            loss = torch.log(1 + torch.exp(self.threshold - goodness(x)))
-            layer_loss += loss.item()
-
-            grads = torch.autograd.grad(loss, self.parameters(), create_graph=True)
-            with torch.no_grad():
-                for param, grad in zip(self.parameters(), grads):
-                    param.grad = -1 * grad * learning_rate
-            self.zero_grad()
-
-            return layer_loss / 2
+            return self.forward(x_positive).detach(), self.forward(x_negative).detach(), loss.item()
 
     def __init__(self):
         super(FFNet, self).__init__()
@@ -153,7 +141,7 @@ class FFNet(nn.Module):
 
         return image
 
-    def train(self, train_loader, learning_rate=0.01, epochs=10):
+    def train(self, train_loader, epochs=10):
         losses = []
         for epoch in range(epochs):
             cumulative_loss = 0
@@ -166,12 +154,12 @@ class FFNet(nn.Module):
                 negative_images = torch.stack([self.encode_label(image, (label + randint(1, 9)) % 10) for image, label in zip(negative_images, negative_labels)]) # Misencodes the label for negative data
 
                 for image_pair in zip(positive_images, negative_images):
-                    temp_loss = 0
+                    x_positive, x_negative = image_pair
                     for layer in self.layers:
-                        temp_loss += layer.train(image_pair[0], image_pair[1], learning_rate=learning_rate)
-                    cumulative_loss += temp_loss / len(self.layers)
+                        x_positive, x_negative, temp_loss = layer.train(x_positive, x_negative)
+                        cumulative_loss += temp_loss
 
-            loss = cumulative_loss / len(train_loader)
+            loss = cumulative_loss / (len(train_loader) * len(self.layers))
             losses.append(loss)
             print(f"Epoch {epoch} Loss: {loss}")
 
