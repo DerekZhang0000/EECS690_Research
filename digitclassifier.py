@@ -1,9 +1,7 @@
 import torch
-import numpy as np
 import torch.nn.functional as F
 from torch import nn
 import matplotlib.pyplot as plt
-from math import e as eulers_num
 from random import randint
 
 class BackpropNet(nn.Module):
@@ -13,6 +11,7 @@ class BackpropNet(nn.Module):
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 10)
         self.R = nn.ReLU()
+        self.opt = torch.optim.Adam(self.parameters(), lr=0.01)
         self.to("cuda:0")
 
     def forward(self, x):
@@ -27,23 +26,18 @@ class BackpropNet(nn.Module):
         x = F.softmax(x, dim=1)
         return x
 
-    def backward(self, x, y, learning_rate):
+    def backward(self, x, y):
         criterion = nn.CrossEntropyLoss().cuda()
         loss = criterion(x, y)
-        self.zero_grad()
 
         # Backwards pass
-        loss.backward()
-
-        # Update weights and biases
-        with torch.no_grad():
-            for param in self.parameters():
-                param.data -= learning_rate * param.grad
         self.zero_grad()
+        loss.backward()
+        self.opt.step()
 
         return loss.item()
 
-    def train(self, train_loader, learning_rate=0.01, epochs=10):
+    def train(self, train_loader, epochs=10):
         losses = []
         for epoch in range(epochs):
             cumulative_loss = 0
@@ -51,7 +45,7 @@ class BackpropNet(nn.Module):
                 images, labels = batch
                 images, labels = images.to("cuda:0"), labels.to("cuda:0")
                 predictions = self.forward(images)
-                cumulative_loss += self.backward(predictions, labels, learning_rate)
+                cumulative_loss += self.backward(predictions, labels)
 
             loss = cumulative_loss / len(train_loader)
             losses.append(loss)
@@ -95,6 +89,7 @@ class FFNet(nn.Module):
             self.R = nn.ReLU()
             self.opt = torch.optim.Adam(self.parameters(), lr=0.01)
             self.threshold = threshold
+            self.to("cuda:0")
 
         def forward(self, x):
             # Flatten input
@@ -135,9 +130,9 @@ class FFNet(nn.Module):
         # Encodes the image label into the image
         for i in range(10):
             if i == label:
-                image[0][0][label] = 1
+                image[0][0][i] = 1
             else:
-                image[0][0][label] = -1
+                image[0][0][i] = -1
 
         return image
 
@@ -166,6 +161,38 @@ class FFNet(nn.Module):
         torch.save(self.state_dict(), "ff_model.pt")
         return losses
 
+    def predict(self, x):
+        def goodness(x):
+            return x.pow(2).mean(1)
+
+        x_possibilities = [self.encode_label(x, i) for i in range(10)]  # Creates 10 copies of the image with different labels
+        most_good_index = 0
+        most_goodness = 0
+        for index, x in enumerate(x_possibilities):
+            x_goodness = 0
+            for layer in self.layers:
+                x = layer.forward(x)
+                x_goodness += torch.sum(goodness(x)).item()
+            if x_goodness > most_goodness:
+                most_goodness = x_goodness
+                most_good_index = index
+
+        return most_good_index
+
+    def accuracy(self, test_loader):
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for batch in test_loader:
+                images, labels = batch
+                images, labels = images.to("cuda:0"), labels.to("cuda:0")
+                predictions = self.predict(images)
+                total += labels.size(0)
+                correct += (predictions == labels).sum().item()
+
+        print(f"Accuracy: {correct / total * 100}%")
+        return correct / total
+
     def visualize_feature(self, node_index):
         self.to("cpu")
 
@@ -178,3 +205,68 @@ class FFNet(nn.Module):
         plt.title(f"Node {node_index} Feature Visualization")
         plt.axis("off")
         plt.show()
+
+class FFNetOvA(FFNet):
+    class FFLayerOvA(FFNet.FFLayer):
+        pass
+
+    def __init__(self, train_category=0):
+        super(FFNetOvA, self).__init__()
+        self.train_category = train_category
+        self.fc1 = self.FFLayerOvA(28 * 28, 32, threshold=2)    # Thresholds are arbitrary
+        self.fc2 = self.FFLayerOvA(32, 32, threshold=2)
+        self.fc3 = self.FFLayerOvA(32, 10, threshold=2)
+        self.layers = (self.fc1, self.fc2, self.fc3)
+
+    def train(self, train_loader, epochs=10):
+        losses = []
+        for epoch in range(epochs):
+            cumulative_loss = 0
+            for batch in train_loader:
+                images, labels = batch
+                images, labels = images.to("cuda:0"), labels.to("cuda:0")
+                positive_images = images[labels == self.train_category]
+                negative_images = images[labels != self.train_category]
+                negative_images = negative_images[:len(positive_images)]  # Makes sure that the number of positive and negative images are equal
+
+                for image_pair in zip(positive_images, negative_images):
+                    x_positive, x_negative = image_pair
+                    for layer in self.layers:
+                        x_positive, x_negative, temp_loss = layer.train(x_positive, x_negative)
+                        cumulative_loss += temp_loss
+
+            loss = cumulative_loss / (len(train_loader) * len(self.layers))
+            losses.append(loss)
+            print(f"Epoch {epoch} Loss: {loss}")
+
+        torch.save(self.state_dict(), f"ff_model_{self.train_category}.pt")
+        return losses
+
+    def predict(self, x):
+        def goodness(x):
+            return x.pow(2).mean(1)
+
+        total_goodness = 0
+        for layer in self.layers:
+            x = layer.forward(x)
+            total_goodness += torch.sum(goodness(x)).item()
+
+        return self.train_category if total_goodness > sum([layer.threshold for layer in self.layers]) else -1
+
+    def accuracy(self, test_loader):
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for batch in test_loader:
+                images, labels = batch
+                images, labels = images.to("cuda:0"), labels.to("cuda:0")
+                for image, label in zip(images, labels):
+                    prediction = self.predict(image)
+                    if label == self.train_category and prediction == self.train_category:
+                        correct += 1
+                    elif label != self.train_category and prediction == -1:
+                        correct += 1
+                total += labels.size(0)
+
+        print(f"Accuracy: {correct / total * 100}%")
+        return correct / total
