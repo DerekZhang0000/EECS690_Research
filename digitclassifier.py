@@ -102,9 +102,10 @@ class BPNetOvA(BPNet):
                 # Set target labels to 1 for the target class and 0 for all other classes
                 labels = (labels == self.train_category).long()
 
-                while len(labels[labels == 1]) > len(labels[labels == 0]):  # Removes non-target labels until the number of targets and non-targets are equal
+                while len(labels[labels == 1]) < len(labels[labels == 0]):  # Removes non-target labels until the number of targets and non-targets are equal
                     index = randint(0, len(labels) - 1)
                     if labels[index] == 0:
+                        images = torch.cat((images[:index], images[index + 1:]))
                         labels = torch.cat((labels[:index], labels[index + 1:]))
 
                 predictions = self.forward(images)

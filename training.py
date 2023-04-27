@@ -26,8 +26,8 @@ def train_backpropnet(train_data):
 def train_bpnet_ova(train_data, train_category):
     train_loader = DataLoader(train_data, batch_size=128, shuffle=True, num_workers=4, pin_memory=True)
     bnova = BPNetOvA(train_category)
-    losses = bnova.train(train_loader, epochs=1)
-    plot_losses(losses)
+    losses = bnova.train(train_loader, epochs=25)
+    # plot_losses(losses)
 
 def bp_accuracy_ova():
     models = [BPNetOvA(index) for index in range(10)]
@@ -108,6 +108,3 @@ if __name__ == "__main__":
 
     bp_accuracy_ova()
     ff_accuracy_ova()
-
-    # for category in range(64):
-    #     model.visualize_feature(category)
