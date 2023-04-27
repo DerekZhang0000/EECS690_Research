@@ -26,7 +26,7 @@ def train_backpropnet(train_data):
 def train_bpnet_ova(train_data, train_category):
     train_loader = DataLoader(train_data, batch_size=128, shuffle=True, num_workers=4, pin_memory=True)
     bnova = BPNetOvA(train_category)
-    losses = bnova.train(train_loader, epochs=25)
+    losses = bnova.train(train_loader, epochs=1)
     plot_losses(losses)
 
 def bp_accuracy_ova():
@@ -103,9 +103,6 @@ def display_image(image):
     plt.show()
 
 if __name__ == "__main__":
-    data = MNIST("./data/", download=True, train=True, transform=transform)
-    train_data, test_data = torch.utils.data.random_split(data, [50000, 10000])
-
     bp_accuracy_ova()
     ff_accuracy_ova()
 
