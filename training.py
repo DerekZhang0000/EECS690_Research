@@ -103,6 +103,9 @@ def display_image(image):
     plt.show()
 
 if __name__ == "__main__":
+    data = MNIST("./data/", download=True, train=True, transform=transform)
+    train_data, test_data = torch.utils.data.random_split(data, [50000, 10000])
+
     bp_accuracy_ova()
     ff_accuracy_ova()
 
