@@ -25,7 +25,7 @@ The single backpropagation features look ordinary
 
 Notice some of the features with negative weights (light background) are non-digit figures
 
-
+<br>
 
 The forward forward model had a high loss, but this may be partially attributed to the different loss function used.
 
@@ -55,7 +55,7 @@ This is because half of the models always predicted their target class while the
 
 As shown here, the model did not appear to learn much
 
-
+<br>
 
 The models for forward forward seemed to have learned well, though training may have been stopped too early
 
