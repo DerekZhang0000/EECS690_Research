@@ -1,7 +1,10 @@
 # EECS 690 Research
 Research project comparing the Forward-Forward algorithm to conventional backpropagation, created with PyTorch
+
 I study the features and accuracy of networks trained with either algorithm, both as a single model and using one vs all parallelism
+
 Only first-layer features were examined, since they would be the most intuitive for humans to look at
+
 Parts of the forward forward code are adapted from [Mohammad Pezeshki](https://github.com/mohammadpz/pytorch_forward_forward)
 
 ## Single Model
