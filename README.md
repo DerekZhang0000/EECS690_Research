@@ -21,6 +21,7 @@ The single model for backpropagation achieved an accuracy of 94.86%
 ![bp_single_features](./images/bp_single_features.PNG)
 
 The single backpropagation features look ordinary
+
 Notice some of the features with negative weights (light background) are non-digit figures
 
 
