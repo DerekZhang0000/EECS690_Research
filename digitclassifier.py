@@ -88,6 +88,7 @@ class BPNetOvA(BPNet):
         self.fc1 = nn.Linear(28 * 28, 32)
         self.fc2 = nn.Linear(32, 32)
         self.fc3 = nn.Linear(32, 2)
+        self.opt = torch.optim.Adam(self.parameters(), lr=0.01)
         self.train_category = train_category
         self.to("cuda:0")
 
@@ -126,8 +127,8 @@ class BPNetOvA(BPNet):
                 images, labels = batch
                 images, labels = images.to("cuda:0"), labels.to("cuda:0")
                 labels[labels == self.train_category] = -1
-                labels[labels != -1] = 1
-                labels[labels == -1] = 0
+                labels[labels != -1] = 0
+                labels[labels == -1] = 1
 
                 for image, label in zip(images, labels):
                     prediction = torch.argmax(self.forward(image))

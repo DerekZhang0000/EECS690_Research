@@ -46,10 +46,10 @@ def bp_accuracy_ova():
             temp_predictions = []
             for model in models:
                 temp_predictions.append(torch.argmax(model.forward(image)).item())
-            if temp_predictions.count(0) != 1:
+            if temp_predictions.count(1) != 1:
                 batch_predictions.append(-1)
             else:
-                batch_predictions.append(temp_predictions.index(0))
+                batch_predictions.append(temp_predictions.index(1))
         total += labels.size(0)
 
         for prediction, label in zip(batch_predictions, labels):
@@ -67,7 +67,7 @@ def train_ffnet_ova(train_data, train_category):
     train_loader = DataLoader(train_data, batch_size=128, shuffle=True, num_workers=4, pin_memory=True)
     ffnova = FFNetOvA(train_category)
     losses = ffnova.train(train_loader, epochs=25)
-    # plot_losses(losses)
+    plot_losses(losses)
 
 def ff_accuracy_ova():
     models = [FFNetOvA(index) for index in range(10)]
