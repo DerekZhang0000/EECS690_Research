@@ -13,6 +13,8 @@ For the single models, I used a neural network of 3 fully connected layers (784 
 
 All training was done using 25 epochs
 
+<br>
+
 The backpropagation model trained normally, though the loss was higher than expected
 
 ![bp_single_training](./images/bp_single_training.PNG)
@@ -40,6 +42,8 @@ The single model for forward forward achieved an accuracy of 91.73%, slightly wo
 For the one vs all models, I used 10 neural networks of 3 fully connected layers (784 * 32, 32 * 32, 32 * 2)
 
 All training was done using 25 epochs
+
+<br>
 
 The backpropagation models converged instantly, even after rewriting the code and using different loss functions
 
