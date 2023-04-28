@@ -10,6 +10,7 @@ Parts of the forward forward code are adapted from [Mohammad Pezeshki](https://g
 ## Single Model
 
 For the single models, I used a neural network of 3 fully connected layers (784 * 64, 64 * 64, 64 * 10)
+
 All training was done using 25 epochs
 
 The backpropagation model trained normally, though the loss was higher than expected
@@ -36,6 +37,7 @@ The single model for forward forward achieved an accuracy of 91.73%, slightly wo
 ## One vs All Models
 
 For the one vs all models, I used 10 neural networks of 3 fully connected layers (784 * 32, 32 * 32, 32 * 2)
+
 All training was done using 25 epochs
 
 The backpropagation models converged instantly, even after rewriting the code and using different loss functions
@@ -43,6 +45,7 @@ The backpropagation models converged instantly, even after rewriting the code an
 ![bp_ova_training](./images/bp_ova_training.PNG)
 
 The models for backpropagation achieved an accuracy of 0.00%
+
 This is because half of the models always predicted their target class while the other half always predicted the rest of the classes
 
 ![bp_ova_accuracy](./images/bp_ova_accuracy.PNG)
