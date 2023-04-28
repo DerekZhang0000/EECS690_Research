@@ -23,9 +23,9 @@ The single model for backpropagation achieved an accuracy of 94.86%
 
 ![bp_single_features](./images/bp_single_features.PNG)
 
-The single backpropagation features look ordinary
+The features of the backpropagation single model look ordinary
 
-Notice some of the features with negative weights (light background) are non-digit figures
+Notice some of the features with negative weights (light background) appear to be non-digit figures or fragmented digits
 
 <br>
 
@@ -35,7 +35,15 @@ The forward forward model had a high loss, but this may be partially attributed 
 
 The single model for forward forward achieved an accuracy of 91.73%, slightly worse than backpropagation
 
+Training was done by encoding the class into the first 10 pixels of the image
+
 ![ff_single_features](./images/ff_single_features.PNG)
+
+These features seemed to be higher in quality compared to backpropagation
+
+There are no fragmented or non-digit features
+
+The negative features seem accurate too, showing incorrect encodings
 
 ## One vs All Models
 
