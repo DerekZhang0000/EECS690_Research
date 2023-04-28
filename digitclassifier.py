@@ -27,7 +27,7 @@ class BPNet(nn.Module):
         return x
 
     def backward(self, x, y):
-        criterion = nn.CrossEntropyLoss().cuda()
+        criterion = nn.CrossEntropyLoss()
         loss = criterion(x, y)
 
         # Backwards pass
@@ -126,8 +126,8 @@ class BPNetOvA(BPNet):
                 images, labels = batch
                 images, labels = images.to("cuda:0"), labels.to("cuda:0")
                 labels[labels == self.train_category] = -1
-                labels[labels != -1] = 0
-                labels[labels == -1] = 1
+                labels[labels != -1] = 1
+                labels[labels == -1] = 0
 
                 for image, label in zip(images, labels):
                     prediction = torch.argmax(self.forward(image))
