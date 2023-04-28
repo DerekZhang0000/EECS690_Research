@@ -66,6 +66,7 @@ The models for forward forward seemed to have learned well, though training may 
 ![ff_ova_training](./images/ff_ova_training.PNG)
 
 The models for forward forward achieved an accuracy of 82.31%
+
 Each model had a very high accuracy, all above 95%
 
 ![ff_ova_accuracy](./images/ff_ova_accuracy.PNG)
