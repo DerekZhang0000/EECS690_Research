@@ -29,7 +29,7 @@ Notice some of the features with negative weights (light background) are non-dig
 
 <br>
 
-The forward forward model had a high loss, but this may be partially attributed to the different loss function used.
+The forward forward model had a high loss, but this may be partially attributed to the different loss function used
 
 ![ff_single_training](./images/ff_single_training.PNG)
 
