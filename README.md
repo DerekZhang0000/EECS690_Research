@@ -23,6 +23,7 @@ The single model for backpropagation achieved an accuracy of 94.86%
 The single backpropagation features look ordinary
 Notice some of the features with negative weights (light background) are non-digit figures
 
+
 The forward forward model had a high loss, but this may be partially attributed to the different loss function used.
 
 ![ff_single_training](./images/ff_single_training.PNG)
@@ -48,6 +49,7 @@ This is because half of the models always predicted their target class while the
 ![bp_ova_features](./images/bp_ova_0_features.PNG)
 
 As shown here, the model did not appear to learn much
+
 
 The models for forward forward seemed to have learned well, though training may have been stopped too early
 
