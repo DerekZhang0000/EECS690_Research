@@ -42,7 +42,7 @@ This is because half of the models always predicted their target class while the
 
 ![bp_ova_accuracy](./images/bp_ova_accuracy.PNG)
 
-![bp_ova_features](./images/bp_ova_features.PNG)
+![bp_ova_features](./images/bp_ova_0_features.PNG)
 
 As shown here, the model did not appear to learn much
 
@@ -55,7 +55,7 @@ Each model had a very high accuracy, all above 95%
 
 ![ff_ova_accuracy](./images/ff_ova_accuracy.PNG)
 
-![ff_ova_features](./images/ff_ova_features.PNG)
+![ff_ova_features](./images/ff_ova_0_features.PNG)
 
 These features seem to represent the class very well, including features with negative weights
 
