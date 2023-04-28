@@ -64,4 +64,5 @@ These features seem to represent the class very well, including features with ne
 
 ## Conclusion
 Though the one vs all model for forward forward did not achieve a higher accuracy than the single mode for backpropagation, the algorithm may have practical use cases concerning binary classification
+
 Due to the nature of the algorithm incorporating negative data in training, I hypothesize that it can be more effective than backpropagation
