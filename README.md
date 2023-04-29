@@ -74,4 +74,4 @@ These features seem similar in quality, though the edges of the zeros also more 
 
 ## Conclusion
 Though the one vs all model for forward forward did not achieve a higher accuracy than the single model for backpropagation, the marginally better one vs all performance suggests the forward forward algorithm might be better at binary classification (or any other use cases where it would be beneficial to train on what is NOT real data).
-Due to the nature of the algorithm incorporating negative data in training, I hypothesize that it can be more effective than backpropagation.
+Due to the nature of the algorithm incorporating negative data in training, I hypothesize that it can be more effective than backpropagation in these sort of binary classification problems.
