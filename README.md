@@ -36,9 +36,8 @@ Training was done by encoding the class into the first 10 pixels of the image.
 
 ![ff_single_features](./plots/ff_single_features.PNG)
 
-These features seemed to be higher in quality compared to backpropagation.
-There are no fragmented or non-digit features. Instead, there are "negative features", or features that represents negative (fake) inputs.
-The negative features seem accurate too, showing incorrect encodings.
+These features seemed to be similar in quality compared to backpropagation.
+There are no fragmented or non-digit features. Instead, there are "negative features", or features that represent negative (fake) inputs.
 
 ## One vs All Models
 
@@ -71,7 +70,7 @@ The models for forward forward achieved a combined accuracy of 82.31%, slightly 
 
 ![ff_ova_features](./plots/ff_ova_0_features.PNG)
 
-These features seem to represent the class very well, including features with negative weights.
+These features seem similar in quality, though the edges of the zeros also more defined.
 
 ## Conclusion
 Though the one vs all model for forward forward did not achieve a higher accuracy than the single model for backpropagation, the marginally better one vs all performance suggests the forward forward algorithm might be better at binary classification (or any other use cases where it would be beneficial to train on what is NOT real data).
